@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="MyWebGIS">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,700;1,700&family=Raleway:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/css/style.css">
+  </head>
+  <body class="map-page-main">
+    <!--   Main Line  -->
+    <header class="top-line map-page">
+      <div class="container main-display">
+        <!-- Logo -->
+         <nav class="main-contact">
+         <a href="" class="logo"><span class="first-part">My</span>Web</a>
+
+         <!-- Navigation -->
+        
+          <ul class="navigation">
+            <li class="navigation-element">
+              <div class="item-box">
+              <a href="/index.html" class="item">Main</a>
+              <div class="navigation-item-line">
+              </div>
+              </div>
+            </li>
+            <li class="navigation-element">
+              <div class="item-box">
+              <a href="/map.html" class="item active">Map</a>
+              <div class="navigation-item-line">
+              </div>
+              </div>
+            </li>
+            <li class="navigation-element">
+              <div class="item-box">
+              <a href="/contacts.html" class="item">Contacts</a>
+              <div class="navigation-item-line">
+              </div>
+              </div>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="auth-group">
+          <ul class="log-in">
+            <li class="log-in-element">
+              <div class="item-box">
+                <a href="/register.html" class="item">Sign up</a>
+                <div class="auth-item-line"></div>
+              </div>
+            </li>
+            <li class="log-in-element">
+              <div class="item-box">
+                <a href="/login.html" class="item">Log in</a>
+                <div class="auth-item-line"></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </header>
+    <main class="map-window">
+
+
+         
+         <div id="map"> </div>
+
+    </main>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,267 @@
+:root{
+    --base-color: #99AD7A;
+    --base-color-text: #2E2E2E;
+    --akcent-color: #546B41;
+        /* --akcent-color: red; */
+    --akcent-color-text: #FFF8EC;
+    --second-base-color: #FFF8EC;
+    --base-color-text: #2E2E2E;
+    --second-akcent-color: #DCCCAC;
+    --second-akcent-text: #2E2E2E;
+
+    --bg-main-line: #ececec;
+    --logo-color: #212121;
+
+    --main-front: "Roboto";
+    --logo-font: "Raleway";
+
+    --duration: 500ms;
+    --cubic-bezier: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html {
+  height: 100%;
+}
+
+body {
+    margin: 0;
+
+    font-family: var(--main-front), sant-serif;
+    color: var(--base-color-text)
+}
+
+ul {
+    list-style: none;
+    margin: 0;
+}
+
+li {
+    margin: 0;
+}
+
+a {
+    color: var(--base-color-text);
+    text-decoration: none;
+}
+
+h1, h2, h3 {
+    margin: 0;
+    padding: 0;
+}
+
+p {
+    margin-bottom: 0;
+    margin-top: 0;
+}
+
+/* ----------------- General ----------------- */
+.container {
+    margin-left: auto;
+    margin-right: auto;
+
+    width: 1200px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+
+
+/* ----------------- Main line ----------------- */
+
+
+.top-line {
+  background-color: var(--second-base-color);
+
+  border-bottom: 1px solid #eeeeee;
+}
+
+.main-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  margin-right: 93px;
+
+  font-family: var(--logo-font), sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: 0.78px;
+
+  color: var(--base-color);
+}
+
+.logo > .first-part {
+  color: var(--akcent-color);
+}
+
+.navigation{
+  display: flex;
+
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.navigation .navigation-element {
+  padding-right: 50px;
+  padding-left: 0;
+}
+
+.navigation .navigation-element:last-child {
+  padding-right: 0;
+}
+
+.navigation .item-box {
+  display: inline-block;
+  padding-bottom: 24px;
+  padding-top: 25px;
+
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.28px;
+
+  color: var(--base-color);
+
+  transition-property: color;
+  transition-duration: var(--duration);
+  transition-timing-function: var(--cubic-bezier);
+}
+
+.navigation .item-box:hover .navigation-item-line,
+.navigation .item-box:active .navigation-item-line {
+  opacity: 1;
+  scale: 1;
+}
+
+.navigation .item-box:hover,
+.navigation .item-box:active {
+  color: var(--base-color);
+}
+
+.navigation .item.active {
+  color: var(--base-color);
+}
+
+.item.active + .navigation-item-line {
+  opacity: 1;
+  scale: 1;
+}
+
+.item-box {
+  position: relative;
+}
+
+.navigation-item-line {
+  position: absolute;
+  bottom: 0;
+
+  height: 4px;
+  width: 100%;
+
+  border-radius: 2px;
+
+  opacity: 0;
+  scale: 0;
+
+  background-color: var(--base-color);
+
+  transition-property: opacity scale;
+  transition-duration: var(--duration);
+  transition-timing-function: var(--cubic-bezier);
+}
+
+.main-contact {
+  display: flex;
+  align-items: center;
+}
+
+.log-in {
+  display: flex;
+  padding: 0;
+
+}
+
+.log-in-element {
+  padding-right: 50px;
+}
+
+.log-in-element:last-child {
+  padding-right: 0;
+}
+
+.log-in-element .item-box {
+  display: inline-block;
+  padding-bottom: 24px;
+  padding-top: 25px;
+
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.28px;
+
+  color: var(--base-color);
+
+  transition-property: color;
+  transition-duration: var(--duration);
+  transition-timing-function: var(--cubic-bezier);
+}
+
+
+.auth-item-line {
+  position: absolute;
+  bottom: 0;
+
+  height: 4px;
+  width: 100%;
+
+  border-radius: 2px;
+
+  opacity: 0;
+  scale: 0;
+
+  background-color: var(--base-color);
+
+  transition-property: opacity scale;
+  transition-duration: var(--duration);
+  transition-timing-function: var(--cubic-bezier);
+}
+
+.auth-group .item-box:hover .auth-item-line,
+.auth-group .item-box:active .auth-item-line {
+  opacity: 1;
+  scale: 1;
+}
+
+/* ----------------- Map ----------------- */
+
+
+
+.map-page-main {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.top-line.map-page {
+    flex-shrink: 0;
+}
+
+.map-window {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#map {
+    width:100%;
+    flex-grow: 1;
+    background-color: #f0f0f0;
+}
+
+
