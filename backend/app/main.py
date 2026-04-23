@@ -1,50 +1,79 @@
-import os
-from dotenv import load_dotenv
 from pathlib import Path
-from urllib.parse import quote_plus
+from typing import List
 
-from fastapi import FastAPI
+
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from app.database import engine, get_db
+from app.models.telemetry import Telemetry
+from app.schemas.schemas import TelemetryCreate, TelemetryResponse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-env_path = BASE_DIR / ".env"
+
 frontend_dir = BASE_DIR.parent / "frontend"
-load_dotenv(dotenv_path=env_path)
-
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
-
-
-safe_password = quote_plus(DB_PASSWORD) if DB_PASSWORD else ""
-safe_user = quote_plus(DB_USER) if DB_USER else ""
-
-DATABASE_URL = (
-    f"postgresql://{safe_user}:{safe_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-               )
-engine = create_engine(DATABASE_URL)
 
 
 app = FastAPI(title="My Web GIS API")
+
+
+# --- Static ---
 
 
 app.mount("/css", StaticFiles(directory=frontend_dir / "css"), name="css")
 app.mount("/js", StaticFiles(directory=frontend_dir / "js"), name="js")
 app.mount("/media", StaticFiles(directory=frontend_dir / "media"), name="media")
 
+
+# --- API for Telemetry ---
+
+
+@app.post("/api/telemetry", response_model=TelemetryResponse)
+def create_telemetry(data: TelemetryCreate, db: Session = Depends(get_db)):
+    """Receives data from the phone and saves it to the database"""
+    try:
+        point_wkt = f"POINT({data.longitude} {data.latitude})"
+
+        new_entry = Telemetry(
+            accel_x=data.accel_x,
+            accel_y=data.accel_y,
+            accel_z=data.accel_z,
+            geom=point_wkt
+        )
+
+        db.add(new_entry)
+        db.commit()
+        # db.refresh(new_entry)
+
+        return {"status": "success", "message": "Дані збережено в Supabase"}
+
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR: {e}")
+        raise HTTPException(status_code=500, detail=f"Write error: {e}")
+
+
+@app.get("/api/telemetry", response_model=List[TelemetryResponse])
+def get_telemetry(db: Session = Depends(get_db)):    
+    """Return a list of all collected telemetry"""
+    return db.query(Telemetry).all()
+
+
+# --- API  ---
+
+
 @app.get("/api/shapes")
 def get_shapes():
     try:
         with engine.connect() as conn:
-            # УВАГА: Заміни 'spatial_data' на назву своєї таблиці з QGIS
+            
             table_name = "vil" 
             
-            # Цей запит формує GeoJSON прямо всередині PostgreSQL
+            
             query = text(f"""
                 SELECT json_build_object(
                     'type', 'FeatureCollection',
@@ -95,4 +124,13 @@ def test_connection():
 
 
 
-# uvicorn backend.app.main:app --reload
+# uvicorn app.main:app --reload
+
+# python -m uvicorn app.main:app --reload
+
+# python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# http://10.0.0.2:8000
+
+
+# alembic revision --autogenerate -m "Create telemetry table"
+# alembic upgrade head

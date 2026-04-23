@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GIS Telemetry</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        .status { margin: 20px; padding: 10px; border-radius: 5px; }
+        .on { background: #d4edda; color: #155724; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>GIS Tracker</h1>
+    <button id="start">Активувати сенсори</button>
+    <div id="out" class="status">Натисніть кнопку для старту</div>
+
+    <script>
+        let interval;
+        const out = document.getElementById('out');
+
+        async function sendData(lat, lon, x, y, z) {
+            try {
+                const response = await fetch('/api/telemetry', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lon,
+                        accel_x: x,
+                        accel_y: y,
+                        accel_z: z
+                    })
+                });
+                console.log('Дані надіслано');
+            } catch (err) {
+                console.error('Помилка відправки:', err);
+            }
+        }
+
+        document.getElementById('start').onclick = function() {
+            // Запит на доступ до геопозиції
+            navigator.geolocation.watchPosition((pos) => {
+                const { latitude, longitude } = pos.coords;
+                out.innerHTML = `Широта: ${latitude.toFixed(4)}<br>Довгота: ${longitude.toFixed(4)}`;
+                
+                // Для прикладу: відправляємо дані кожні 3 секунди (якщо є акселерометр)
+                // Акселерометр потребує HTTPS або localhost
+                window.ondevicemotion = (event) => {
+                    const { x, y, z } = event.accelerationIncludingGravity;
+                    sendData(latitude, longitude, x || 0, y || 0, z || 0);
+                };
+            }, (err) => {
+                out.innerHTML = "Помилка геолокації: " + err.message;
+            });
+            
+            this.style.display = 'none';
+            out.className = 'status on';
+        };
+    </script>
+</body>
+</html>
