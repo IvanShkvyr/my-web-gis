@@ -2,8 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="MyWebGIS">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MyWebGIS — Map</title>
+    <meta name="description" content="Interactive GIS map with geodata">
 
+    <link rel="icon" href="/media/favicon.png">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,66 +17,16 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/components/header.js" defer></script>
   </head>
   <body class="map-page-main">
     <!--   Main Line  -->
-    <header class="top-line map-page">
-      <div class="container main-display">
-        <!-- Logo -->
-         <nav class="main-contact">
-         <a href="" class="logo"><span class="first-part">My</span>Web</a>
+    <header id="site-header" class="top-line map-page"></header>
 
-         <!-- Navigation -->
-        
-          <ul class="navigation">
-            <li class="navigation-element">
-              <div class="item-box">
-              <a href="/index.html" class="item">Main</a>
-              <div class="navigation-item-line">
-              </div>
-              </div>
-            </li>
-            <li class="navigation-element">
-              <div class="item-box">
-              <a href="/map.html" class="item active">Map</a>
-              <div class="navigation-item-line">
-              </div>
-              </div>
-            </li>
-            <li class="navigation-element">
-              <div class="item-box">
-              <a href="/contacts.html" class="item">Contacts</a>
-              <div class="navigation-item-line">
-              </div>
-              </div>
-            </li>
-          </ul>
-        </nav>
-
-        <div class="auth-group">
-          <ul class="log-in">
-            <li class="log-in-element">
-              <div class="item-box">
-                <a href="/register.html" class="item">Sign up</a>
-                <div class="auth-item-line"></div>
-              </div>
-            </li>
-            <li class="log-in-element">
-              <div class="item-box">
-                <a href="/login.html" class="item">Log in</a>
-                <div class="auth-item-line"></div>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-      </div>
-    </header>
     <main class="map-window">
-
-
          
-         <div id="map"> </div>
+      <div id="map"> </div>
 
     </main>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

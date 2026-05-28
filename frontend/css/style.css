@@ -1,6 +1,5 @@
 :root{
     --base-color: #99AD7A;
-    --base-color-text: #2E2E2E;
     --akcent-color: #546B41;
         /* --akcent-color: red; */
     --akcent-color-text: #FFF8EC;
@@ -26,7 +25,7 @@ html {
 body {
     margin: 0;
 
-    font-family: var(--main-front), sant-serif;
+    font-family: var(--main-front), sans-serif;
     color: var(--base-color-text)
 }
 

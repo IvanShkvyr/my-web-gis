@@ -1,37 +1,40 @@
 
-// Ініціалізація карти (залишається як була)
-const map = L.map('map').setView([50.45, 30.52], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+const mapContainer = document.getElementById('map');
 
-async function loadShapes() {
-    try {
-        console.log("Запит до API відправлено..."); // Додай для перевірки
-        const response = await fetch('/api/shapes');
-        const data = await response.json();
-        console.log("Дані отримано:", data); // Додай для перевірки
+// Ініціалізуємо карту тільки якщо контейнер існує на цій сторінці
+if (mapContainer) {
+    const map = L.map('map').setView([50.45, 30.52], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        const geoLayer = L.geoJSON(data, {
-            style: {
-                color: "#ff7800",
-                weight: 5,
-                opacity: 0.65
-            },
-            onEachFeature: function (feature, layer) {
-                if (feature.properties && feature.properties.name_r) {
-                    layer.bindPopup("Район: " + feature.properties.name_r);
+    async function loadShapes() {
+        try {
+            console.log("API request sent...");
+            const response = await fetch('/api/v1/shapes');
+            const data = await response.json();
+            console.log("Data received:", data);
+
+            const geoLayer = L.geoJSON(data, {
+                style: {
+                    color: "#ff7800",
+                    weight: 5,
+                    opacity: 0.65
+                },
+                onEachFeature: function (feature, layer) {
+                    if (feature.properties && feature.properties.name_r) {
+                        layer.bindPopup("District: " + feature.properties.name_r);
+                    }
                 }
+            }).addTo(map);
+
+            if (data.features && data.features.length > 0) {
+                map.fitBounds(geoLayer.getBounds());
             }
-        }).addTo(map);
 
-        if (data.features && data.features.length > 0) {
-            map.fitBounds(geoLayer.getBounds());
+        } catch (error) {
+            console.error("Error loading shapes:", error);
         }
-
-    } catch (error) {
-        console.error("Error loading shapes:", error);
     }
+
+    loadShapes();
 }
-
-// ОСЬ ЦЬОГО РЯДКА НЕ ВИСТАЧАЛО:
-loadShapes();
-

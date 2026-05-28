@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>GIS Telemetry</title>
+        <meta name="description" content="Record GPS and accelerometer telemetry from your device">
+
+        <link rel="icon" href="/media/favicon.png">
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+        href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,700;1,700&family=Raleway:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/css/style.css">
+
+        <script src="/js/auth.js"></script>
+        <script>
+            Auth.requireAuth();
+        </script>
+        <script src="/components/header.js" defer></script>
+
+    </head>
+    <body>
+    <header id="site-header" class="top-line"></header>
+    <main>
+        <div class="container">
+            <h1>GIS Tracker</h1>
+            <button id="start">Activate sensors</button>
+            <div id="out" class="status">Press the button to start</div>
+        </div>      
+    </main>
+
+    <script>
+        let interval;
+        const out = document.getElementById('out');
+
+        async function sendData(lat, lon, x, y, z) {
+            try {
+                const response = await fetch('/api/v1/telemetry', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lon,
+                        accel_x: x,
+                        accel_y: y,
+                        accel_z: z
+                    })
+                });
+                console.log('Data sent');
+            } catch (err) {
+                console.error('Sending error:', err);
+            }
+        }
+
+        document.getElementById('start').onclick = function() {
+            // Запит на доступ до геопозиції
+            navigator.geolocation.watchPosition((pos) => {
+                const { latitude, longitude } = pos.coords;
+                out.innerHTML = `Latitude: ${latitude.toFixed(4)}<br>Longitude: ${longitude.toFixed(4)}`;
+                
+                window.ondevicemotion = (event) => {
+                    const { x, y, z } = event.accelerationIncludingGravity;
+                    sendData(latitude, longitude, x || 0, y || 0, z || 0);
+                };
+            }, (err) => {
+                out.innerHTML = "Geolocation error: " + err.message;
+            });
+            
+            this.style.display = 'none';
+            out.className = 'status on';
+        };
+    </script>
+</body>
+</html>
