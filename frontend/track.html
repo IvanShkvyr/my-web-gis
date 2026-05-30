@@ -28,51 +28,306 @@
     <main>
         <div class="container">
             <h1>GIS Tracker</h1>
-            <button id="start">Activate sensors</button>
-            <div id="out" class="status">Press the button to start</div>
+            <div class="settings-card" id="settingsCard">
+                <h2>Session settings</h2>
+
+                <!-- Setting 1: Transmission interval -->
+                <div class="settings-row">
+                    <div class="setting-label">
+                        <span>Data transmission interval</span>
+                        <span class="setting-value" id="intervalDisplay">10 min</span>
+                    </div>
+                    <input
+                        type="range"
+                        id="intervalSlider"
+                        class="slider"
+                        min="1"
+                        max="30"
+                        value="10"
+                        step="1"
+                    />
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#999; margin-top:4px;">
+                        <span>1 min</span>
+                        <span>30 min</span>
+                    </div>
+                </div>
+
+                <!-- Setting 2: GPS Accuracy -->
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <span>GPS Accuracy</span>
+                    </div>
+                    <div class="toggle-group">
+                        <input type="radio" name="accuracy" id="accHigh" value="high" checked>
+                        <label for="accHigh">High (GPS)</label>
+                        <input type="radio" name="accuracy" id="accEco" value="eco">
+                        <label for="accEco">Economical (WiFi)</label>
+                    </div>
+                    <div style="font-size:12px; color:#999; margin-top:6px;" id="accuracyHint">
+                        GPS chip · accuracy 3–10 m · more battery consumption
+                    </div>
+                </div>
+
+                <!-- Setting 3: Accelerometer -->
+                <div class="setting-row">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="accelEnabled" checked>
+                        <span>Collect accelerometer data</span>
+                    </label>
+                    <div style="font-size:12px; color:#999; margin-top:6px;">
+                        Disable if you only need a GPS track
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <button class="btn btn-start" id="btnStart">
+                Start Recording
+            </button>
+
+            <button class="btn btn-stop" id="btnStop" style="display:none;">
+                Stop
+            </button>
+
+            <!-- Status: what's happening right now -->
+            <div class="status" id="statusBox">
+                Adjust the settings and click "Start Recording"
+            </div>
+
+            <!-- Session statistics: shown during tracking -->
+            <div class="stats" id="statsBox">
+                <!-- JS is being filled in. -->
+            </div>
+
         </div>      
     </main>
 
     <script>
-        let interval;
-        const out = document.getElementById('out');
+        // Constants
+        const state = {
+            currentLat:     null,
+            currentLon:     null,
+            lastSentAt:     0,
+            watchId:        null,
+            intervalId:     null,
+            lastAccel:      null,
+            sessionStart:   null,
+            sentCount:      0,
+            isTracking:     false,
+        };
 
-        async function sendData(lat, lon, x, y, z) {
-            try {
-                const response = await fetch('/api/v1/telemetry', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        latitude: lat,
-                        longitude: lon,
-                        accel_x: x,
-                        accel_y: y,
-                        accel_z: z
-                    })
-                });
-                console.log('Data sent');
-            } catch (err) {
-                console.error('Sending error:', err);
+        let config = {
+            intervalMs:     5 * 60 * 1000,
+            highAccuracy:   true,
+            accelEnabled:   true,
+        };
+
+        const dom = {
+            settingsCard:   document.getElementById("settingsCard"),
+            intervalSlider: document.getElementById("intervalSlider"),
+            intervalDisplay: document.getElementById('intervalDisplay'),
+            accuracyHint:    document.getElementById('accuracyHint'),
+            accelEnabled:    document.getElementById('accelEnabled'),
+            btnStart:        document.getElementById('btnStart'),
+            btnStop:         document.getElementById('btnStop'),
+            statusBox:       document.getElementById('statusBox'),
+            statsBox:        document.getElementById('statsBox'),
+        }
+
+        dom.intervalSlider.addEventListener("input", function(){
+            const minutes = Number(this.value);
+            dom.intervalDisplay.textContent = `${minutes} min`;
+        })
+
+        const accuracyHints = {
+            high: "GPS chip · accuracy 3–10 m · more battery consumption",
+            eco: "WiFi + cellular · accuracy 50–300 m · saves battery"
+        };
+
+        dom.accuracyHint.textContent = accuracyHints[
+            document.querySelector('input[name="accuracy"]:checked').value
+        ];
+
+        document.querySelectorAll('input[name="accuracy"]').forEach(radio => {
+            radio.addEventListener("change", function () {
+                dom.accuracyHint.textContent = accuracyHints[this.value];
+            });
+        });
+
+        async function sendData(lat, lon, accelData) {
+            const body = {
+                latitude:   lat,
+                longitude:  lon,
+                accel_x:    accelData?.x ?? 0,
+                accel_y:    accelData?.y ?? 0,
+                accel_z:    accelData?.z ?? 0,
+            };
+
+            const res = await fetch('/api/v1/telemetry', {
+                method:     "POST",
+                headers:    {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Auth.getToken()}`,
+                },
+                body: JSON.stringify(body),
+            });
+
+            if (!res.ok) {
+                throw new Error(`Server error: ${res.status}`);
             }
         }
 
-        document.getElementById('start').onclick = function() {
-            // Запит на доступ до геопозиції
-            navigator.geolocation.watchPosition((pos) => {
-                const { latitude, longitude } = pos.coords;
-                out.innerHTML = `Latitude: ${latitude.toFixed(4)}<br>Longitude: ${longitude.toFixed(4)}`;
-                
-                window.ondevicemotion = (event) => {
-                    const { x, y, z } = event.accelerationIncludingGravity;
-                    sendData(latitude, longitude, x || 0, y || 0, z || 0);
-                };
-            }, (err) => {
-                out.innerHTML = "Geolocation error: " + err.message;
+
+        function handleMotion(event) {
+            state.lastAccel = event.accelerationIncludingGravity;
+        }
+
+        // START
+        dom.btnStart.addEventListener("click", function (){
+
+            config = {
+                intervalMs:   Number(dom.intervalSlider.value) * 60 * 1000,
+                highAccuracy: document.querySelector('input[name="accuracy"]:checked').value === 'high',
+                accelEnabled: dom.accelEnabled.checked,
+            }
+                if (config.accelEnabled && typeof DeviceMotionEvent?.requestPermission === 'function') {
+                    DeviceMotionEvent.requestPermission()
+                        .then(permission => {
+                            if (permission === 'granted') {
+                                startTracking();
+                            } else {
+                                setStatus('Accelerometer permission denied. Tracking without accelerometer.', 'error');
+                                config.accelEnabled = false;
+                                startTracking();
+                            }
+                        })
+                        .catch(err => setStatus('Permission error: ' + err.message, 'error'));
+                } else {
+                    startTracking();
+                }
             });
-            
-            this.style.display = 'none';
-            out.className = 'status on';
-        };
+
+
+        function startTracking() {
+                state.isTracking   = true;
+                state.sessionStart = new Date();
+                state.sentCount    = 0;
+                state.lastSentAt   = Date.now();
+
+                dom.settingsCard.style.display = 'none';
+                dom.btnStart.style.display     = 'none';
+                dom.btnStop.style.display      = 'block';
+                dom.statsBox.classList.add('visible');
+                setStatus('Waiting for the first GPS signal...', 'on');
+
+                 if (config.accelEnabled) {
+                    window.addEventListener('devicemotion', handleMotion);
+                }
+
+                state.intervalId = setInterval(() => {
+                    if (state.currentLat === null) return;
+
+                    state.lastSentAt = Date.now();
+
+                    const accel = config.accelEnabled ? state.lastAccel : null;
+
+                    sendData(state.currentLat, state.currentLon, accel)
+                        .then(() => {
+                            state.sentCount++;
+                            updateStats();
+                        })
+                        .catch(err => {
+                            console.error('[tracker] Send failed:', err);
+                            setStatus(`Sending error: ${err.message}`, 'error');
+                        });
+
+                }, config.intervalMs);
+
+                state.watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        state.currentLat = pos.coords.latitude;
+                        state.currentLon = pos.coords.longitude;
+                        setStatus(
+                            `GPS active<br>` +
+                            `Lat: ${state.currentLat.toFixed(5)}<br>` +
+                            `Lon: ${state.currentLon.toFixed(5)}`,
+                            'on'
+                        );
+                    },
+                    (err) => {
+                        if (err.code === GeolocationPositionError.PERMISSION_DENIED) {
+                            setStatus('GPS permission denied. Please allow location access.', 'error');
+                            stopTracking();
+                        } else {
+                            setStatus(`GPS signal lost (${err.message}). Waiting...`, 'error');
+
+                        }
+                    },
+                    { enableHighAccuracy: config.highAccuracy }
+                );
+
+                updateStats();
+            }
+
+
+            //  STOP
+            dom.btnStop.addEventListener('click', stopTracking);
+
+            function stopTracking() {
+                state.isTracking = false;
+
+                if (state.watchId !== null) {
+                    navigator.geolocation.clearWatch(state.watchId);
+                    state.watchId = null;
+                }
+
+                if (state.intervalId !== null) {
+                    clearInterval(state.intervalId);
+                    state.intervalId = null;
+                }
+
+                window.removeEventListener('devicemotion', handleMotion);
+
+                state.currentLat = null;
+                state.currentLon = null;
+
+                dom.settingsCard.style.display = 'block';
+                dom.btnStop.style.display      = 'none';
+                dom.btnStart.style.display     = 'block';
+                dom.statsBox.classList.remove('visible');
+
+                const sent = state.sentCount;
+                setStatus(`Session ended. Packets sent: ${sent}`, '');
+            }
+
+
+            //  HELPERS
+            function setStatus(html, type) {
+                dom.statusBox.innerHTML = html;
+                dom.statusBox.className = 'status' + (type ? ` ${type}` : '');
+            }
+
+            function updateStats() {
+                if (!state.sessionStart) return;
+                const elapsed = Math.floor((Date.now() - state.sessionStart) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                const nextSendIn = Math.max(
+                    0,
+                    Math.ceil((config.intervalMs - (Date.now() - state.lastSentAt)) / 1000)
+                );
+
+                dom.statsBox.innerHTML =
+                    `Duration: ${minutes}m ${seconds}s<br>` +
+                    `Packets sent: ${state.sentCount}<br>` +
+                    `Next send: in ${nextSendIn}s`;
+
+                if (state.isTracking) {
+                    setTimeout(updateStats, 1000);
+                }
+            }
+        
+        
     </script>
 </body>
 </html>
