@@ -66,7 +66,18 @@ p {
 
 
 /* ----------------- Main line ----------------- */
+.logout-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
 
+    font: inherit;
+    letter-spacing: inherit; 
+    color: var(--base-color-text);
+
+    cursor: pointer;
+}
 
 .top-line {
   background-color: var(--second-base-color);

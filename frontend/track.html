@@ -163,12 +163,9 @@
                 accel_z:    accelData?.z ?? 0,
             };
 
-            const res = await fetch('/api/v1/telemetry', {
+            const res = await Auth.fetch('/api/v1/telemetry', {
                 method:     "POST",
-                headers:    {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${Auth.getToken()}`,
-                },
+                headers:    {'Content-Type': 'application/json'},
                 body: JSON.stringify(body),
             });
 

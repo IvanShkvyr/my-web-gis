@@ -18,14 +18,42 @@ const Auth = (() => {
     }
 
     function isLoggedIn() {
-        return getToken() !== null;
+        const token = getToken();
+        return token !== null && !_isTokenExpired(token);
     }
+
+
+    // ---------- JWT helpers ----------
+    function _decodeJwtPayload(token) {
+        try {
+            const base64Url = token.split(".")[1];
+            if (!base64Url) return null;
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+            const json = decodeURIComponent(
+                atob(base64)
+                    .split("")
+                    .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join("")
+            );
+            return JSON.parse(json);
+        } catch {
+            return null;
+        }
+    }
+
+    function _isTokenExpired(token) {
+        const payload = _decodeJwtPayload(token);
+        if (!payload || typeof payload.exp !== "number") return true;
+        return payload.exp * 1000 <= Date.now();
+    }
+
+
 
     // ----------- route guard ------------------
 
     function requireAuth() {
         if (!isLoggedIn()) {
-            const next = encodeURIComponent(window.AbortControllerlocation.pathname);
+            const next = encodeURIComponent(window.location.pathname);
             window.location.replace("/login.html?next=" + next);
         }
     }
@@ -70,7 +98,7 @@ const Auth = (() => {
     }
 
     // -------------------------------
-    async function authFatch(url, options={}) {
+    async function authFetch(url, options={}) {
         const token = getToken();
 
         const headers = {
@@ -78,19 +106,19 @@ const Auth = (() => {
             ...(token ? {"Authorization": "Bearer " + token} : {}),
         };
 
-        const response = await feath(url, {...options, headers});
+        const response = await fetch(url, {...options, headers});
 
-        if (response.status === 401 && token) {
+        if (response.status === 401) {
             _removeToken();
-            window.location.replace("/login.html&next=" + next);
-
+            const next = encodeURIComponent(window.location.pathname);
+            window.location.replace("/login.html?next=" + next);
             return new Promise(() => {});
         }
 
         return response;
     }
 
-    // ----------- pablic interface ---------------
+    // ----------- public interface ---------------
 
     return {
         getToken,
@@ -99,7 +127,7 @@ const Auth = (() => {
         login,
         register,
         logout,
-        fatch: authFatch,
+        fetch: authFetch,
     };
 
 })();

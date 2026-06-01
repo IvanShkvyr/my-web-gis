@@ -10,15 +10,10 @@ const NAV_LINKS = [
 
 // ----- HELPERS ------
 
-function isLoggedIn() {
-    return localStorage.getItem("access_token") !== null;
-}
-
 function getActivePath() {
     const path = window.location.pathname;
     return path === "/"?"/index.html": path;
 }
-
 
 // ---------- HTML GENERATORS -------------
 
@@ -35,18 +30,19 @@ function renderNavItem(link, activePath) {
             </li>`;
 }
 
-
-
-
 function renderAuthSection() {
-    if (isLoggedIn()) {
+    if (Auth.isLoggedIn()) {
         return `
-            <div class="auth-group">
+        <div class="auth-group">
+          <ul class="log-in">
+            <li class="log-in-element">
               <div class="item-box logout-box">
                 <button class="item logout-btn" id="logout-btn" type="button">Log out</button>
                 <div class="auth-item-line"></div>
               </div>
-            </div>`;
+            </li>
+          </ul>
+        </div>`;
     }
  
     return `
@@ -98,9 +94,9 @@ function renderHeader(activePath, userIsLoggedIn) {
 
 function mountHeader() {
 
-    const hearedEl = document.getElementById("site-header");
+    const headerEl = document.getElementById("site-header");
 
-    if (!hearedEl) {
+    if (!headerEl) {
         console.error(
             "[header.js] Element <header id=\"site-header\"> not found. " +
             "Make sure it is present in the HTML."
@@ -108,18 +104,11 @@ function mountHeader() {
         return;
     }
 
-    hearedEl.innerHTML = renderHeader(getActivePath(), isLoggedIn());
+    headerEl.innerHTML = renderHeader(getActivePath(), Auth.isLoggedIn());
 
     const logoutBtn = document.getElementById("logout-btn");
     if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-            if (typeof Auth !== "undefined") {
-                Auth.logout();
-            } else {
-                localStorage.removeItem("access_token");
-                window.location.href = "/index.html";
-            }
-        });
+        logoutBtn.addEventListener("click", () => Auth.logout());
     }
 
 }
