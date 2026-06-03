@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from app.core.config import settings
@@ -31,19 +30,21 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 # ------------------------- JWT ---------------------------------
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: int, role: Optional[str] = None) -> str:
     """
     Creates a signed JWT token containing user_id.
     """
     payload = {
       "sub": str(user_id),
-      "exp": datetime.now(timezone.utc) +
-        timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+      "exp": datetime.now(timezone.utc)
+        + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     }
+    if role is not None:
+        payload["role"] = role
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
-def _decode_token(token: str) -> int | None:
+def decode_token(token: str) -> int | None:
     """
     Decodes JWT and return user_id, or None if invalid/expired.
     """
@@ -55,30 +56,3 @@ def _decode_token(token: str) -> int | None:
         return int(user_id) if user_id else None
     except JWTError:
         return None
-    
-
-# ---------------------- FastAPI dependency ----------------------
-
-bearer_scheme = HTTPBearer()
-
-
-def get_current_user_id(
-        credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
-        ) -> int:
-    """
-    FastAPI dependency
-    Validates Bearer token and returns user_id.
-    Raises 401 if token is missing, invalid, or expired.
-    """
-    user_id = _decode_token(credentials.credentials)
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
-    
-    return user_id
-
-
-
-

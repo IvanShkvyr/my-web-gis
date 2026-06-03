@@ -22,6 +22,13 @@ const Auth = (() => {
         return token !== null && !_isTokenExpired(token);
     }
 
+    function getRole() {
+        const token = getToken();
+        if (!token) return null;
+        const payload = _decodeJwtPayload(token);
+        return payload?.role ?? null;
+    }
+
 
     // ---------- JWT helpers ----------
     function _decodeJwtPayload(token) {
@@ -122,6 +129,7 @@ const Auth = (() => {
 
     return {
         getToken,
+        getRole,
         isLoggedIn,
         requireAuth,
         login,

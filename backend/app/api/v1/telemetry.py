@@ -7,8 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app import crud
-from app.api.deps import get_optional_current_uaer
-from app.core.security import get_current_user_id
+from app.api.deps import get_optional_current_user, get_current_user
 from app.core.enums import UserRole
 from app.database import get_db
 from app.models.users import Users
@@ -28,7 +27,7 @@ router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
 def create_telemetry(
     data: TelemetryCreate,
     db: Session = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id),
+    current_user_id: int = Depends(get_current_user),
     ):
     """
      Receives sensor data from a mobile device and stores it in the database.
@@ -45,6 +44,7 @@ def create_telemetry(
             )
     
     except SQLAlchemyError:
+        logger.exception("Failed to create telemetry")
         db.rollback()
         raise HTTPException(
             status_code=500,
@@ -82,7 +82,7 @@ def _resolve_target_user_ids(
 @router.get("", response_model=TelemetryPage)
 def get_telemetry(
     db: Session = Depends(get_db),
-    current_user: Optional[Users] = Depends(get_optional_current_uaer),
+    current_user: Optional[Users] = Depends(get_optional_current_user),
     user_id: Optional[list[int]] = Query(None, description="Filter by user ID (admin only, repeatable)"),
     date_from: Optional[date] = Query(None, description="Start date (YYYY-MM-DD)"),
     date_to: Optional[date] = Query(None, description="End date (YYYY-MM-DD)"),

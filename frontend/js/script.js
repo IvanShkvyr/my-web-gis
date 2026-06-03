@@ -7,6 +7,26 @@ if (mapContainer) {
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+
+    async function loadTelemetry() {
+        try {
+            const res = await Auth.fetch('/api/v1/telemetry?limit=200');
+            if (!res.ok) throw new Error(`Server error: ${res.status}`);
+            const page = await res.json();
+
+            page.items.forEach(p => {
+                L.circleMarker([p.latitude, p.longitude], {
+                    radius: 5, color: '#2266ff', fillOpacity: 0.7,
+                }).bindPopup(`ts: ${p.timestamp}`).addTo(map);
+            });
+        } catch (e) {
+            console.error('Error loading telemetry:', e);
+        }
+    }
+    
+    loadTelemetry();
+
+
     async function loadShapes() {
         try {
             console.log("API request sent...");

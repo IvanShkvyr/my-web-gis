@@ -1,13 +1,22 @@
 import logging
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.database import get_db
-from app.schemas.users import UserCreate, UserLogin, TokenResponse, UserResponse
+from app.schemas.users import (
+    UserCreate,
+    UserLogin,
+    TokenResponse,
+    UserResponse,
+    UserAdminUpdate
+    )
 from app.core.security import verify_password, create_access_token
 from app.core.enums import UserRole
+from app.api.deps import get_current_user, require_admin
+from app.models.users import Users
 
 
 logger = logging.getLogger(__name__)
@@ -37,10 +46,53 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     Authenticates a user and returns a JWT access token.
     """
     user = crud.users.get_by_email(db, credentials.email)
-
     if not user or not verify_password(credentials.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    token = create_access_token(user_id=user.id)
+    token = create_access_token(user_id=user.id, role=user.role.value)
 
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: Users = Depends(get_current_user)):
+    return current_user
+
+
+@router.get("", response_model=List[UserResponse])
+def list_users(
+    db: Session = Depends(get_db),
+    _admin: Users = Depends(require_admin),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    ):
+    return crud.users.get_all(db, limit=limit, offset=offset)
+
+
+@router.patch("/{user_id}", response_model=UserResponse)
+def update_user_role(
+    user_id: int,
+    payload: UserAdminUpdate,
+    db: Session = Depends(get_db),
+    admin: Users = Depends(require_admin),
+):
+    if user_id == admin.id:
+        raise HTTPException(400, "You cannot change your own role.")
+    target = crud.users.get_by_id(db, user_id)
+    if target is None:
+        raise HTTPException(404, "User not found")
+    return crud.users.update_role(db, target, payload.role)
+
+
+@router.delete("/{user_id}", status_code=204)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: Users = Depends(require_admin),
+):
+    if user_id == admin.id:
+        raise HTTPException(400, "You cannot delete your own account.")
+    target = crud.users.get_by_id(db, user_id)
+    if target is None:
+        raise HTTPException(404, "User not found.")
+    crud.users.delete(db, target)
+    return None

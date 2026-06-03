@@ -16,6 +16,7 @@
         <link rel="stylesheet" href="/css/style.css">
 
         <script src="/js/auth.js"></script>
+        <script> Auth.requireAuth(); </script> 
         <script src="/components/header.js" defer></script>
     </head>
     <body>
@@ -23,6 +24,22 @@
         <main class="auth-page">
             <div class="container">
                 <h1 class="hero-title">Coming soon</h1>
+
+                <table id="data-table">
+                <thead><tr><th>#</th><th>Time</th><th>Lat</th><th>Lon</th></tr></thead>
+                <tbody></tbody>
+                </table>
+                <script>
+                (async () => {
+                    const res = await Auth.fetch('/api/v1/telemetry?limit=100');
+                    if (!res.ok) { console.error('Load failed:', res.status); return; }
+                    const page = await res.json();
+                    document.querySelector('#data-table tbody').innerHTML = page.items.map(p =>
+                    `<tr><td>${p.id}</td><td>${p.timestamp}</td>
+                        <td>${p.latitude.toFixed(5)}</td><td>${p.longitude.toFixed(5)}</td></tr>`
+                    ).join('');
+                })();
+                </script>
 
             </div>
         </main>

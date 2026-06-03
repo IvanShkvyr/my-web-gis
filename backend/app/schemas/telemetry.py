@@ -14,11 +14,6 @@ class TelemetryCreate(BaseModel):
 class TelemetryResponse(TelemetryCreate):
     id: int
     timestamp: datetime
-    latitude: float
-    longitude: float
-    accel_x: float
-    accel_y: float
-    accel_z: float
 
     model_config = ConfigDict(from_attributes=True) 
 

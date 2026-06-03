@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy.orm import Session
 
 from app.models.users import Users
@@ -11,9 +13,7 @@ def get_demo_user_ids(db: Session) -> list[int]:
     Return list of IDs of all users with DEMO role.
     """
     rows = db.query(Users.id).filter(Users.role == UserRole.DEMO).all()
-
     return [row.id for row in rows]
-
 
 
 def get_by_email(db: Session, email: str) -> Users | None:
@@ -44,8 +44,36 @@ def create(
         password=hash_password(user_data.password),
         role=role,
     )
-
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
+
+
+def get_all(db: Session, limit: int = 100, offset: int = 0) -> List[Users]:
+    """
+    Returns a list of all users
+    """
+    return (
+        db.query(Users)
+        .order_by(Users.id)
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+
+
+def update_role(db: Session, user: Users, new_role: UserRole) -> Users:
+    """
+    Update user role
+    """
+    user.role = new_role
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete(db: Session, user: Users) -> None:
+    """ Delete user"""
+    db.delete(user)
+    db.commit()

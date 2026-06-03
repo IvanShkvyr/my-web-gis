@@ -6,6 +6,7 @@ const NAV_LINKS = [
     {href: "/contacts.html",label: "Contacts",  auth: "any"},
     {href: "/track.html",   label: "Track",     auth: "user"},
     {href: "/data.html",    label: "My Data",   auth: "user"},
+    {href: "/admin.html",   label: "Admin",     auth: "admin"},
 ];
 
 // ----- HELPERS ------
@@ -13,6 +14,14 @@ const NAV_LINKS = [
 function getActivePath() {
     const path = window.location.pathname;
     return path === "/"?"/index.html": path;
+}
+
+
+function canSee(link, isLoggedIn, role) {
+    if (link.auth === "any")   return true;
+    if (link.auth === "user")  return isLoggedIn;
+    if (link.auth === "admin") return role === "admin";
+    return false;
 }
 
 // ---------- HTML GENERATORS -------------
@@ -66,9 +75,9 @@ function renderAuthSection() {
 
 
 function renderHeader(activePath, userIsLoggedIn) {
-
+    const role = Auth.getRole();
     const visibleLinks = NAV_LINKS.filter(link => 
-        link.auth === "any" || (link.auth === "user" && userIsLoggedIn)
+        canSee(link, userIsLoggedIn, role)
     );
 
     const navItemsHTML = visibleLinks

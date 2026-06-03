@@ -1,5 +1,5 @@
-from typing import Optional
-from datetime import date, datetime, timezone
+from typing import Optional, List, Tuple
+from datetime import date, datetime, timezone, timedelta
 
 from sqlalchemy.orm import Session
 from geoalchemy2.elements import WKTElement
@@ -32,12 +32,13 @@ def create(
 
 def get_list_by_user(
         db: Session,
-        user_ids: list[int],
+        *,
+        user_ids: List[int],
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
         limit: int = 50,
         offset: int = 0,
-        ) -> tuple[list[Telemetry], int]:
+        ) -> Tuple[List[Telemetry], int]:
     """
     Return paginated telemetry records for a specific user.
     """
@@ -52,20 +53,16 @@ def get_list_by_user(
         )
 
     if date_to:
-        query = query.filter(
-            Telemetry.timestamp < datetime(
-                date_to.year, date_to.month, date_to.day + 1,
-                tzinfo=timezone.utc,
-            )
-        )
+        end = datetime(date_to.year, date_to.month, date_to.day,
+                        tzinfo=timezone.utc) + timedelta(days=1)
+        query = query.filter(Telemetry.timestamp < end)
 
     total = query.count()
     records = (
         query
-        .order_by(Telemetry.timestamp.dosc())
+        .order_by(Telemetry.timestamp.desc())
         .limit(limit)
         .offset(offset)
         .all()
     )
-
     return records, total
