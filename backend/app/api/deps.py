@@ -28,8 +28,13 @@ def get_optional_current_user(
     user_id = decode_token(credentials.credentials)
     if not user_id:
         return None
+    
+    user = crud.users.get_by_id(db, user_id)
 
-    return crud.users.get_by_id(db, user_id)
+    if user is None or not user.is_active:
+        return None
+
+    return user
 
 
 def get_current_user(

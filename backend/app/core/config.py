@@ -41,6 +41,10 @@ class Settings(BaseSettings):
         description="Comma-separated list of allowed CORS origins",
     )
 
+    MAX_TELEMETRY_PER_USER: int = Field(
+        default=3000, gt=0, description="Max telemetry rows per non-admin user",
+    )
+
 
     @computed_field
     @property

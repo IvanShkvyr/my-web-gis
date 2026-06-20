@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 from app.core.constants import USERNAME_LENGTH, PASS_MIN_LEN, PASS_MAX_LEN
@@ -20,12 +22,14 @@ class UserResponse(BaseModel):
     username: str
     email: str
     role: UserRole
-
+    is_active: bool
+    
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserAdminUpdate(BaseModel):
-    role: UserRole
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
 
 
 class TokenResponse(BaseModel):

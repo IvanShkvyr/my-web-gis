@@ -66,3 +66,13 @@ def get_list_by_user(
         .all()
     )
     return records, total
+
+def count_by_user(db: Session, user_id: int) -> int:
+    return db.query(Telemetry).filter(Telemetry.user_id == user_id).count()
+
+
+def delete_by_user(db: Session, user_id: int) -> int:
+    deleted = db.query(Telemetry).filter(Telemetry.user_id == user_id).delete()
+    db.commit()
+    return deleted
+

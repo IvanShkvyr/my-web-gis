@@ -29,6 +29,10 @@ const Auth = (() => {
         return payload?.role ?? null;
     }
 
+    function getUserId() {
+        const payload = _decodeJwtPayload(getToken());
+        return payload ? parseInt(payload.sub, 10) : null;
+    }
 
     // ---------- JWT helpers ----------
     function _decodeJwtPayload(token) {
@@ -130,6 +134,7 @@ const Auth = (() => {
     return {
         getToken,
         getRole,
+        getUserId,
         isLoggedIn,
         requireAuth,
         login,

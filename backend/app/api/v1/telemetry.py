@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app import crud
-from app.api.deps import get_optional_current_user, get_current_user
 from app.core.enums import UserRole
 from app.database import get_db
 from app.models.users import Users
@@ -15,6 +14,12 @@ from app.schemas.telemetry import (
     TelemetryCreate,
     TelemetryResponse,
     TelemetryPage
+    )
+from app.core.config import settings
+from app.api.deps import (
+    get_optional_current_user,
+    get_current_user,
+    require_admin
     )
 
 
@@ -27,13 +32,19 @@ router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
 def create_telemetry(
     data: TelemetryCreate,
     db: Session = Depends(get_db),
-    current_user_id: int = Depends(get_current_user),
+    current_user: Users = Depends(get_current_user),
     ):
     """
      Receives sensor data from a mobile device and stores it in the database.
     """
+    if current_user != UserRole.ADMIN:
+        if crud.telemetry.count_by_user(db, current_user.id) >= settings.MAX_TELEMETRY_PER_USER:
+            raise HTTPException(
+                429,
+                "Telemetry quota reached. Delete old records to continue."
+                )
     try:
-        record = crud.telemetry.create(db, data, user_id=current_user_id)
+        record = crud.telemetry.create(db, data, user_id=current_user.id)
         return record
 
     except IntegrityError:
@@ -121,3 +132,18 @@ def get_telemetry(
                         current_user.id if current_user else "anonymous",
                         )
         raise HTTPException(status_code=500, detail="Internal server error.")
+
+
+@router.delete("/by-user/{user_id}", status_code=204)
+def delete_user_telemetry(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _admin: Users = Depends(require_admin),
+    ):
+    """
+    Delete all telemetry of a given user. Admin only. Keeps the user account.
+    """
+    crud.telemetry.delete_by_user(db, user_id)
+    return None
+
+

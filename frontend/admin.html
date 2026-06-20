@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MyWebGIS — Admin</title>
+    <meta name="description" content="Admin panel: manage users and their data">
+
+    <link rel="icon" href="/media/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,700;1,700&family=Raleway:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/js/auth.js"></script>
+    <script>
+      Auth.requireAuth();
+      if (Auth.getRole() !== 'admin') window.location.replace('/index.html');
+    </script>
+    <script src="/components/header.js" defer></script>
+
+  </head>
+  <body>
+    <header id="site-header" class="top-line"></header>
+
+    <main class="admin-wrap">
+      <div class="container">
+        <h1>User management</h1>
+        <div id="error-msg" role="alert"></div>
+
+        <table id="users-table">
+          <thead>
+            <tr>
+              <th>ID</th><th>Username</th><th>Email</th>
+              <th>Role</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </main>
+
+    <script>
+      const API = '/api/v1';
+      let currentAdminId = null;
+
+      function escapeHtml(s) {
+        return String(s)
+          .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+      }
+
+      function showError(msg) {
+        const box = document.getElementById('error-msg');
+        box.textContent = msg;
+        box.style.display = 'block';
+      }
+
+      async function errText(res, fallback) {
+        const data = await res.json().catch(() => ({}));
+        return data.detail || `${fallback} (${res.status})`;
+      }
+
+      async function loadUsers() {
+        const res = await Auth.fetch(`${API}/users?limit=500`);
+        if (!res.ok) { showError(await errText(res, 'Failed to load users')); return; }
+        renderUsers(await res.json());
+      }
+
+      function rowHtml(u) {
+        const isSelf = u.id === currentAdminId;
+        const disabled = isSelf ? 'disabled' : '';
+        const roleOptions = ['user', 'demo', 'admin']
+          .map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`)
+          .join('');
+        const statusClass = u.is_active ? 'status-active' : 'status-disabled';
+        const statusText  = u.is_active ? 'Active' : 'Disabled';
+        const toggleText  = u.is_active ? 'Disable' : 'Enable';
+        return `
+          <tr>
+            <td>${u.id}</td>
+            <td>${escapeHtml(u.username)}</td>
+            <td>${escapeHtml(u.email)}</td>
+            <td><select data-action="role" data-id="${u.id}" ${disabled}>${roleOptions}</select></td>
+            <td class="${statusClass}">${statusText}</td>
+            <td class="admin-actions">
+              <button data-action="toggle" data-id="${u.id}" data-active="${u.is_active}" ${disabled}>${toggleText}</button>
+              <button data-action="del-data" data-id="${u.id}">Delete data</button>
+              <button class="danger" data-action="del-user" data-id="${u.id}" ${disabled}>Delete account</button>
+            </td>
+          </tr>`;
+      }
+
+      function renderUsers(users) {
+        const tbody = document.querySelector('#users-table tbody');
+        tbody.innerHTML = users.map(rowHtml).join('');
+        tbody.querySelectorAll('[data-action]').forEach(el => {
+          const evt = el.tagName === 'SELECT' ? 'change' : 'click';
+          el.addEventListener(evt, onAction);
+        });
+      }
+
+      async function patchUser(id, body) {
+        const res = await Auth.fetch(`${API}/users/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(await errText(res, 'Update failed'));
+      }
+
+      async function del(url) {
+        const res = await Auth.fetch(url, { method: 'DELETE' });
+        if (!res.ok) throw new Error(await errText(res, 'Delete failed'));
+      }
+
+      async function onAction(e) {
+        const el = e.currentTarget;
+        const action = el.dataset.action;
+        const id = Number(el.dataset.id);
+        try {
+          if (action === 'role') {
+            await patchUser(id, { role: el.value });
+          } else if (action === 'toggle') {
+            const makeActive = el.dataset.active !== 'true';
+            await patchUser(id, { is_active: makeActive });
+          } else if (action === 'del-data') {
+            if (!confirm(`Delete ALL telemetry of user #${id}? This cannot be undone.`)) return;
+            await del(`${API}/telemetry/by-user/${id}`);
+          } else if (action === 'del-user') {
+            if (!confirm(`Permanently delete user #${id} AND all their data? This cannot be undone.`)) return;
+            await del(`${API}/users/${id}`);
+          }
+        } catch (err) {
+          showError(err.message);
+        }
+        await loadUsers();
+      }
+
+      (async () => {
+        currentAdminId = Auth.getUserId();
+        await loadUsers();
+      })();
+    </script>
+  </body>
+</html>

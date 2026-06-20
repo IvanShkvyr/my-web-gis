@@ -32,6 +32,12 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     existing = crud.users.get_by_email(db, user_data.email)
     
     if existing:
+        if not existing.is_active:
+            raise HTTPException(
+                409,
+                "This account is disabled. Please contact the administrator."
+                )
+
         raise HTTPException(status_code=409, detail="Email already registered.")
     
     new_user = crud.users.create(db, user_data, role=UserRole.USER)
@@ -48,6 +54,12 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     user = crud.users.get_by_email(db, credentials.email)
     if not user or not verify_password(credentials.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not user.is_active:
+        raise HTTPException(
+            403,
+            "Your account has been disabled. Please contact the administrator."
+            )
     token = create_access_token(user_id=user.id, role=user.role.value)
 
     return {"access_token": token, "token_type": "bearer"}
@@ -69,18 +81,19 @@ def list_users(
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
-def update_user_role(
+def update_user(
     user_id: int,
     payload: UserAdminUpdate,
     db: Session = Depends(get_db),
     admin: Users = Depends(require_admin),
 ):
+    """Update a user's role and/or active status (admin only)."""
     if user_id == admin.id:
-        raise HTTPException(400, "You cannot change your own role.")
+        raise HTTPException(400, "You cannot modify your own account.")
     target = crud.users.get_by_id(db, user_id)
     if target is None:
         raise HTTPException(404, "User not found")
-    return crud.users.update_role(db, target, payload.role)
+    return crud.users.admin_update(db, target, role=payload.role, is_active=payload.is_active)
 
 
 @router.delete("/{user_id}", status_code=204)

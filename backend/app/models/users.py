@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func
+from sqlalchemy import Column, Integer, String, DateTime, func, Boolean
 from sqlalchemy import Enum as SAEnum
 
 from app.core.constants import USERNAME_LENGTH
@@ -22,4 +22,5 @@ class Users(Base):
         default=UserRole.USER,
         server_default=UserRole.USER.value
     )
+    is_active = Column(Boolean, nullable=False, server_default="true")
     created_at = Column(DateTime, server_default=func.now())

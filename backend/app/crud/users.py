@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,7 @@ from app.core.security import hash_password
 from app.core.enums import UserRole
 
 
-def get_demo_user_ids(db: Session) -> list[int]:
+def get_demo_user_ids(db: Session) -> List[int]:
     """
     Return list of IDs of all users with DEMO role.
     """
@@ -63,17 +63,24 @@ def get_all(db: Session, limit: int = 100, offset: int = 0) -> List[Users]:
     )
 
 
-def update_role(db: Session, user: Users, new_role: UserRole) -> Users:
-    """
-    Update user role
-    """
-    user.role = new_role
-    db.commit()
-    db.refresh(user)
-    return user
-
-
 def delete(db: Session, user: Users) -> None:
     """ Delete user"""
     db.delete(user)
     db.commit()
+
+
+def admin_update(
+        db: Session,
+        user: Users,
+        *,
+        role: Optional[UserRole] = None,
+        is_active: Optional[bool] = None
+        ) -> Users:
+    """Apply partial admin changes (role and/or active status)."""
+    if role is not None:
+        user.role = role
+    if is_active is not None:
+        user.is_active = is_active
+    db.commit()
+    db.refresh(user)
+    return user
